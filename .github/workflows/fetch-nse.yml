@@ -1,0 +1,82 @@
+name: Fetch NSE Stocks Above 100
+on:
+  schedule:
+    - cron: '*/15 3-10 * * 1-5' # Runs every 15 mins during NSE market hours (Mon-Fri)
+  workflow_dispatch: # Allows manual run anytime
+
+permissions:
+  contents: write
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install yfinance and pandas
+        run: pip install yfinance pandas requests
+      - name: Fetch All NSE Stocks >= 100
+        run: |
+          python - << 'EOF'
+          import json, requests, pandas as pd, yfinance as yf
+          from datetime import datetime, timezone, timedelta
+
+          # 1. Download official NSE Equity list
+          headers = {'User-Agent': 'Mozilla/5.0'}
+          r = requests.get("https://nseindia.com", headers=headers, timeout=20)
+          with open("EQUITY_L.csv", "wb") as f:
+              f.write(r.content)
+
+          df = pd.read_csv("EQUITY_L.csv")
+          df.columns = [c.strip() for c in df.columns]
+          df = df[df['SERIES'].isin(['EQ', 'BE'])]
+          name_map = dict(zip(df['SYMBOL'].str.strip(), df['NAME OF COMPANY'].str.strip()))
+          tickers = [f"{sym}.NS" for sym in name_map.keys()]
+
+          # 2. Download 2 days of price data in bulk to compute LTP, Change, % Change, High, Low, Volume
+          data = yf.download(tickers, period="2d", group_by="ticker", threads=True, progress=False)
+
+          ist = timezone(timedelta(hours=5, minutes=30))
+          updated_at = datetime.now(ist).strftime("%d %b, %I:%M %p IST")
+          results = []
+
+          for sym, company in name_map.items():
+              t = f"{sym}.NS"
+              try:
+                  sub = data[t].dropna(subset=['Close'])
+                  if len(sub) == 0:
+                      continue
+                  last = sub.iloc[-1]
+                  ltp = round(float(last['Close']), 2)
+                  if ltp < 100:
+                      continue
+                  prev = round(float(sub.iloc[-2]['Close']), 2) if len(sub) >= 2 else ltp
+                  chg = round(ltp - prev, 2)
+                  chg_pct = round((chg / prev) * 100, 2) if prev else 0.0
+                  results.append({
+                      "symbol": sym,
+                      "name": company,
+                      "ltp": ltp,
+                      "chg": chg,
+                      "chgPct": chg_pct,
+                      "prevClose": prev,
+                      "low": round(float(last['Low']), 2),
+                      "high": round(float(last['High']), 2),
+                      "vol": int(last['Volume'])
+                  })
+              except Exception:
+                  continue
+
+          with open("nse_data.json", "w") as f:
+              json.dump({"updated": updated_at, "count": len(results), "stocks": results}, f)
+          print(f"Saved {len(results)} NSE stocks >= 100")
+          EOF
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@://github.com"
+          git add nse_data.json
+          git commit -m "Update NSE stock prices" || exit 0
+          git push
