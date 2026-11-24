@@ -1,8 +1,8 @@
 name: Fetch NSE Stocks Above 100
 on:
   schedule:
-    - cron: '*/15 3-10 * * 1-5' # Runs every 15 mins during NSE market hours (Mon-Fri)
-  workflow_dispatch: # Allows manual run anytime
+    - cron: '*/15 3-10 * * 1-5'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,67 +11,109 @@ jobs:
   update-prices:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-      - name: Install yfinance and pandas
-        run: pip install yfinance pandas requests
+      - name: Install dependencies
+        run: pip install --upgrade yfinance pandas requests
       - name: Fetch All NSE Stocks >= 100
         run: |
           python - << 'EOF'
-          import json, requests, pandas as pd, yfinance as yf
+          import io, json, time, requests, pandas as pd, yfinance as yf
           from datetime import datetime, timezone, timedelta
 
-          # 1. Download official NSE Equity list
-          headers = {'User-Agent': 'Mozilla/5.0'}
-          r = requests.get("https://nseindia.com", headers=headers, timeout=20)
-          with open("EQUITY_L.csv", "wb") as f:
-              f.write(r.content)
+          def get_nse_symbols():
+              session = requests.Session()
+              headers = {
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                  "Accept-Language": "en-US,en;q=0.9",
+                  "Referer": "https://nseindia.com"
+              }
+              # Source 1: Official NSE Archives
+              try:
+                  session.get("https://nseindia.com", headers=headers, timeout=15)
+                  r = session.get("https://nseindia.com", headers=headers, timeout=20)
+                  if r.status_code == 200 and "SYMBOL" in r.text[:200]:
+                      print("Loaded symbols from NSE official CSV")
+                      return pd.read_csv(io.StringIO(r.text))
+              except Exception as e:
+                  print("NSE direct blocked:", e)
 
-          df = pd.read_csv("EQUITY_L.csv")
-          df.columns = [c.strip() for c in df.columns]
-          df = df[df['SERIES'].isin(['EQ', 'BE'])]
-          name_map = dict(zip(df['SYMBOL'].str.strip(), df['NAME OF COMPANY'].str.strip()))
-          tickers = [f"{sym}.NS" for sym in name_map.keys()]
+              # Source 2: Fallback mirror of NSE EQUITY_L.csv
+              mirrors = [
+                  "https://githubusercontent.com",
+                  "https://githubusercontent.com"
+              ]
+              for m in mirrors:
+                  try:
+                      r = requests.get(m, timeout=15)
+                      if r.status_code == 200 and "SYMBOL" in r.text.upper()[:200]:
+                          print("Loaded symbols from mirror:", m)
+                          return pd.read_csv(io.StringIO(r.text))
+                  except Exception:
+                      pass
+              raise RuntimeError("Could not download NSE symbol list from any source.")
 
-          # 2. Download 2 days of price data in bulk to compute LTP, Change, % Change, High, Low, Volume
-          data = yf.download(tickers, period="2d", group_by="ticker", threads=True, progress=False)
+          df = get_nse_symbols()
+          df.columns = [c.strip().upper() for c in df.columns]
+          if "SERIES" in df.columns:
+              df = df[df["SERIES"].astype(str).str.strip().isin(["EQ", "BE"])]
+
+          name_col = "NAME OF COMPANY" if "NAME OF COMPANY" in df.columns else df.columns
+          name_map = dict(zip(df["SYMBOL"].astype(str).str.strip(), df[name_col].astype(str).str.strip()))
+          all_symbols = [s for s in name_map.keys() if s and s != "nan"]
+          print(f"Total NSE symbols to check: {len(all_symbols)}")
+
+          results = []
+          chunk_size = 250
+
+          for i in range(0, len(all_symbols), chunk_size):
+              chunk = all_symbols[i:i + chunk_size]
+              tickers = [f"{s}.NS" for s in chunk]
+              print(f"Downloading batch {i} to {i + len(chunk)}...")
+              try:
+                  data = yf.download(tickers, period="5d", group_by="ticker", threads=True, progress=False)
+              except Exception as e:
+                  print("Batch error:", e)
+                  continue
+
+              for sym in chunk:
+                  t = f"{sym}.NS"
+                  try:
+                      sub = data[t] if isinstance(data.columns, pd.MultiIndex) else data
+                      sub = sub.dropna(subset=["Close"])
+                      if len(sub) == 0:
+                          continue
+                      last = sub.iloc[-1]
+                      ltp = round(float(last["Close"]), 2)
+                      if ltp < 100:
+                          continue
+                      prev = round(float(sub.iloc[-2]["Close"]), 2) if len(sub) >= 2 else ltp
+                      chg = round(ltp - prev, 2)
+                      chg_pct = round((chg / prev) * 100, 2) if prev else 0.0
+                      results.append({
+                          "symbol": sym,
+                          "name": name_map.get(sym, sym),
+                          "ltp": ltp,
+                          "chg": chg,
+                          "chgPct": chg_pct,
+                          "prevClose": prev,
+                          "low": round(float(last["Low"]), 2),
+                          "high": round(float(last["High"]), 2),
+                          "vol": int(last["Volume"]) if pd.notna(last["Volume"]) else 0
+                      })
+                  except Exception:
+                      continue
+              time.sleep(1)
 
           ist = timezone(timedelta(hours=5, minutes=30))
           updated_at = datetime.now(ist).strftime("%d %b, %I:%M %p IST")
-          results = []
-
-          for sym, company in name_map.items():
-              t = f"{sym}.NS"
-              try:
-                  sub = data[t].dropna(subset=['Close'])
-                  if len(sub) == 0:
-                      continue
-                  last = sub.iloc[-1]
-                  ltp = round(float(last['Close']), 2)
-                  if ltp < 100:
-                      continue
-                  prev = round(float(sub.iloc[-2]['Close']), 2) if len(sub) >= 2 else ltp
-                  chg = round(ltp - prev, 2)
-                  chg_pct = round((chg / prev) * 100, 2) if prev else 0.0
-                  results.append({
-                      "symbol": sym,
-                      "name": company,
-                      "ltp": ltp,
-                      "chg": chg,
-                      "chgPct": chg_pct,
-                      "prevClose": prev,
-                      "low": round(float(last['Low']), 2),
-                      "high": round(float(last['High']), 2),
-                      "vol": int(last['Volume'])
-                  })
-              except Exception:
-                  continue
 
           with open("nse_data.json", "w") as f:
               json.dump({"updated": updated_at, "count": len(results), "stocks": results}, f)
-          print(f"Saved {len(results)} NSE stocks >= 100")
+          print(f"SUCCESS: Saved {len(results)} NSE stocks >= 100")
           EOF
       - name: Commit updated data
         run: |
