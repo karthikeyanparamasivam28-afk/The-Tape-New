@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Stock Ripple — Live NSE Screener (≥₹100)</title>
+<title>Stock Ripple — All NSE Stocks (≥₹100)</title>
 <style>
   :root { --bg-main:#090b10; --bg-card:#10141d; --bg-hover:#161b26; --border:#1e2533; --text-main:#e2e8f0; --text-muted:#94a3b8; --green:#34d399; --green-bg:rgba(16,185,129,0.14); --red:#fb7185; --red-bg:rgba(244,63,94,0.14); --amber:#fbbf24; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -16,22 +16,18 @@
   .brand span { color:var(--green); }
   .controls-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .status { font-size:12px; color:var(--text-muted); margin-right:4px; }
-  button,.btn-label { background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
-  button:hover,.btn-label:hover { background:var(--bg-hover); }
+  button { background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
+  button:hover { background:var(--bg-hover); }
   .btn-primary { background:var(--green-bg); color:var(--green); border-color:rgba(52,211,153,0.35); }
-  .btn-amber { background:rgba(251,191,36,0.14); color:var(--amber); border-color:rgba(251,191,36,0.35); }
   main { max-width:1360px; margin:0 auto; padding:16px; }
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
   .card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
   .card-label { font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
   .card-val { font-size:24px; font-weight:700; margin-top:4px; }
   .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
-  .search-box { flex:1 1 220px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:9px 14px; color:#fff; font-size:13px; outline:none; }
+  .search-box { flex:1 1 240px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:9px 14px; color:#fff; font-size:13px; outline:none; }
   .filter-group { display:flex; align-items:center; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:4px 10px; gap:6px; font-size:12px; color:var(--text-muted); }
-  .filter-group input { background:transparent; border:none; color:var(--green); font-weight:700; width:65px; font-size:12px; outline:none; }
-  .add-group { display:flex; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-  .add-group input { background:transparent; border:none; padding:8px 10px; color:#fff; font-size:12px; width:125px; text-transform:uppercase; outline:none; }
-  .add-group button { border:none; border-left:1px solid var(--border); border-radius:0; background:#182030; color:var(--green); }
+  .filter-group input { background:transparent; border:none; color:var(--green); font-weight:700; width:75px; font-size:12px; outline:none; }
   select { background:var(--bg-card); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; font-size:12px; outline:none; }
   .table-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow-x:auto; }
   table { width:100%; border-collapse:collapse; text-align:left; min-width:860px; }
@@ -41,9 +37,7 @@
   .right { text-align:right; } .pos { color:var(--green); } .neg { color:var(--red); } .neu { color:var(--text-main); }
   .badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:12px; font-weight:600; }
   .badge-pos { background:var(--green-bg); color:var(--green); } .badge-neg { background:var(--red-bg); color:var(--red); } .badge-neu { background:#1e2533; color:var(--text-muted); }
-  .company-cell { color:var(--text-muted); max-width:200px; overflow:hidden; text-overflow:ellipsis; }
-  .del-btn { background:none; border:none; color:#475569; padding:2px 6px; font-size:13px; }
-  .del-btn:hover { color:var(--red); background:none; }
+  .company-cell { color:var(--text-muted); max-width:220px; overflow:hidden; text-overflow:ellipsis; }
 </style>
 </head>
 <body>
@@ -51,11 +45,8 @@
   <div class="header-inner">
     <div class="brand"><div class="dot"></div>STOCK <span>RIPPLE</span></div>
     <div class="controls-top">
-      <span id="statusText" class="status mono">Initializing...</span>
-      <button class="btn-amber" onclick="loadFullNSEMaster()">Load All 2,000+ NSE Stocks</button>
-      <button onclick="resetWatchlist()">Reset Core List</button>
-      <label class="btn-label"><input type="checkbox" id="autoRefreshToggle"> Auto (60s)</label>
-      <button class="btn-primary" onclick="fetchAllStocks()">Refresh Prices</button>
+      <span id="statusText" class="status mono">Loading NSE data...</span>
+      <button class="btn-primary" onclick="loadData()">Reload Data</button>
     </div>
   </div>
 </header>
@@ -65,19 +56,23 @@
     <div class="card"><div class="card-label mono">Advances (≥Min ₹)</div><div id="advancesCount" class="card-val mono pos">0</div></div>
     <div class="card"><div class="card-label mono">Declines (≥Min ₹)</div><div id="declinesCount" class="card-val mono neg">0</div></div>
     <div class="card"><div class="card-label mono">Unchanged</div><div id="unchangedCount" class="card-val mono">0</div></div>
-    <div class="card"><div class="card-label mono">Quotes Loaded</div><div id="loadedCount" class="card-val mono" style="color:var(--amber)">0/0</div></div>
+    <div class="card"><div class="card-label mono">NSE Stocks ≥Min ₹</div><div id="totalCount" class="card-val mono" style="color:var(--amber)">0</div></div>
   </div>
 
   <div class="toolbar">
     <input type="text" id="searchInput" class="search-box" oninput="renderTable()" placeholder="Search symbol or company..." />
-    <div class="filter-group mono"><span>MIN ₹</span><input type="number" id="minPriceInput" value="100" oninput="updateSummaryCards(); renderTable();" /></div>
-    <div class="add-group"><input type="text" id="newSymbolInput" class="mono" placeholder="e.g. ZOMATO" onkeydown="if(event.key==='Enter') addCustomSymbol()" /><button onclick="addCustomSymbol()">+ Add</button></div>
-    <label class="btn-label">Upload NSE CSV<input type="file" accept=".csv,.txt" onchange="handleCSVUpload(event)" style="display:none" /></label>
+    <div class="filter-group mono"><span>MIN ₹</span><input type="number" id="minPriceInput" value="100" oninput="renderTable()" /></div>
+    <div class="filter-group mono"><span>MAX ₹</span><input type="number" id="maxPriceInput" placeholder="Any" oninput="renderTable()" /></div>
+    <select id="moveFilter" onchange="renderTable()">
+      <option value="all">All Stocks</option>
+      <option value="gainers">Gainers Only (+)</option>
+      <option value="losers">Losers Only (-)</option>
+    </select>
     <select id="sortSelect" onchange="renderTable()">
-      <option value="chgPctDesc">% Change ↓</option>
-      <option value="chgPctAsc">% Change ↑</option>
-      <option value="ltpDesc">LTP ↓</option>
-      <option value="ltpAsc">LTP ↑</option>
+      <option value="chgPctDesc">% Change ↓ (Top Gainers)</option>
+      <option value="chgPctAsc">% Change ↑ (Top Losers)</option>
+      <option value="ltpDesc">Price ↓</option>
+      <option value="ltpAsc">Price ↑</option>
       <option value="volDesc">Volume ↓</option>
     </select>
   </div>
@@ -96,8 +91,6 @@
           <th class="right">Day Low</th>
           <th class="right">Day High</th>
           <th class="right">Volume</th>
-          <th class="right">Updated</th>
-          <th></th>
         </tr>
       </thead>
       <tbody id="stockTableBody"></tbody>
@@ -106,25 +99,83 @@
 </main>
 
 <script>
-// Core starter list of liquid NSE stocks so the page loads fast immediately
-const STARTER_NSE = [
-  "RELIANCE|Reliance Industries Ltd","TCS|Tata Consultancy Services","HDFCBANK|HDFC Bank Ltd","BHARTIARTL|Bharti Airtel Ltd",
-  "ICICIBANK|ICICI Bank Ltd","INFY|Infosys Ltd","SBIN|State Bank of India","HINDUNILVR|Hindustan Unilever Ltd",
-  "ITC|ITC Ltd","LT|Larsen & Toubro Ltd","HCLTECH|HCL Technologies Ltd","BAJFINANCE|Bajaj Finance Ltd",
-  "SUNPHARMA|Sun Pharmaceutical Ind","M&M|Mahindra & Mahindra Ltd","MARUTI|Maruti Suzuki India Ltd","KOTAKBANK|Kotak Mahindra Bank Ltd",
-  "AXISBANK|Axis Bank Ltd","TITAN|Titan Company Ltd","ULTRACEMCO|UltraTech Cement Ltd","ASIANPAINT|Asian Paints Ltd",
-  "NTPC|NTPC Ltd","TATAMOTORS|Tata Motors Ltd","ADANIENT|Adani Enterprises Ltd","ADANIPORTS|Adani Ports & SEZ",
-  "POWERGRID|Power Grid Corp","WIPRO|Wipro Ltd","COALINDIA|Coal India Ltd","BAJAJFINSV|Bajaj Finserv Ltd",
-  "ONGC|Oil & Natural Gas Corp","NESTLEIND|Nestle India Ltd","JSWSTEEL|JSW Steel Ltd","TATASTEEL|Tata Steel Ltd",
-  "GRASIM|Grasim Industries Ltd","TECHM|Tech Mahindra Ltd","HINDALCO|Hindalco Industries Ltd","INDUSINDBK|IndusInd Bank Ltd",
-  "DRREDDY|Dr. Reddy's Laboratories","CIPLA|Cipla Ltd","SBILIFE|SBI Life Insurance","HDFCLIFE|HDFC Life Insurance",
-  "BRITANNIA|Britannia Industries Ltd","APOLLOHOSP|Apollo Hospitals","EICHERMOT|Eicher Motors Ltd","DIVISLAB|Divi's Laboratories",
-  "BPCL|Bharat Petroleum Corp","HEROMOTOCO|Hero MotoCorp Ltd","TRENT|Trent Ltd","BEL|Bharat Electronics Ltd",
-  "HAL|Hindustan Aeronautics Ltd","VBL|Varun Beverages Ltd","ZOMATO|Zomato Ltd","JIOFIN|Jio Financial Services",
-  "DLF|DLF Ltd","SIEMENS|Siemens Ltd","ABB|ABB India Ltd","PIDILITIND|Pidilite Industries Ltd",
-  "GODREJCP|Godrej Consumer Products","INDIGO|InterGlobe Aviation Ltd","BANKBARODA|Bank of Baroda","PNB|Punjab National Bank",
-  "CANBK|Canara Bank","TVSMOTOR|TVS Motor Company Ltd","BAJAJ-AUTO|Bajaj Auto Ltd","CHOLAFIN|Cholamandalam Investment",
-  "HAVELLS|Havells India Ltd","GAIL|GAIL (India) Ltd","IOC|Indian Oil Corporation","SHREECEM|Shree Cement Ltd",
-  "AMBUJACEM|Ambuja Cements Ltd","VEDL|Vedanta Ltd","PFC|Power Finance Corporation","RECLTD|REC Ltd",
-  "IRCTC|IRCTC Ltd","IRFC|Indian Railway Finance Corp","RVNL|Rail Vikas Nigam Ltd","MAZDOCK|Mazagon Dock Shipbuilders",
-  "PERSISTENT|Persistent Systems Ltd","COFORGE|Coforge Ltd","MPHASIS|Mphasis Ltd","LTIM|LTIMindtree Ltd",
+let allStocks = [];
+
+async function loadData() {
+  const statusEl = document.getElementById("statusText");
+  statusEl.textContent = "Fetching nse_data.json...";
+  try {
+    const res = await fetch(`./nse_data.json?t=${Date.now()}`);
+    if (!res.ok) throw new Error("nse_data.json not found — run GitHub Action first");
+    const payload = await res.json();
+    allStocks = payload.stocks || [];
+    statusEl.textContent = `Updated: ${payload.updated} (${allStocks.length} NSE stocks ≥₹100)`;
+    renderTable();
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById("stockTableBody");
+  const query = document.getElementById("searchInput").value.trim().toLowerCase();
+  const minPrice = parseFloat(document.getElementById("minPriceInput").value) || 100;
+  const maxPrice = parseFloat(document.getElementById("maxPriceInput").value) || Infinity;
+  const move = document.getElementById("moveFilter").value;
+  const sortBy = document.getElementById("sortSelect").value;
+
+  let filtered = allStocks.filter(s => {
+    if (s.ltp < minPrice || s.ltp > maxPrice) return false;
+    if (move === "gainers" && s.chg <= 0) return false;
+    if (move === "losers" && s.chg >= 0) return false;
+    if (query && !s.symbol.toLowerCase().includes(query) && !s.name.toLowerCase().includes(query)) return false;
+    return true;
+  });
+
+  let adv = 0, dec = 0, unch = 0;
+  filtered.forEach(s => {
+    if (s.chg > 0) adv++;
+    else if (s.chg < 0) dec++;
+    else unch++;
+  });
+
+  document.getElementById("advancesCount").textContent = adv;
+  document.getElementById("declinesCount").textContent = dec;
+  document.getElementById("unchangedCount").textContent = unch;
+  document.getElementById("totalCount").textContent = filtered.length;
+
+  filtered.sort((a, b) => {
+    if (sortBy === "chgPctDesc") return b.chgPct - a.chgPct;
+    if (sortBy === "chgPctAsc") return a.chgPct - b.chgPct;
+    if (sortBy === "ltpDesc") return b.ltp - a.ltp;
+    if (sortBy === "ltpAsc") return a.ltp - b.ltp;
+    if (sortBy === "volDesc") return b.vol - a.vol;
+    return 0;
+  });
+
+  tbody.innerHTML = filtered.map((s, idx) => {
+    const cls = s.chg > 0 ? "pos" : s.chg < 0 ? "neg" : "neu";
+    const badgeCls = s.chg > 0 ? "badge-pos" : s.chg < 0 ? "badge-neg" : "badge-neu";
+    const sign = s.chg > 0 ? "+" : "";
+    return `
+      <tr>
+        <td class="mono" style="color:var(--text-muted)">${idx + 1}</td>
+        <td class="mono" style="font-weight:700;color:#fff">${s.symbol}</td>
+        <td class="company-cell" title="${s.name}">${s.name}</td>
+        <td class="right mono" style="font-weight:700">₹${s.ltp.toFixed(2)}</td>
+        <td class="right mono ${cls}">${sign}${s.chg.toFixed(2)}</td>
+        <td class="right mono"><span class="badge ${badgeCls}">${sign}${s.chgPct.toFixed(2)}%</span></td>
+        <td class="right mono" style="color:var(--text-muted)">₹${s.prevClose.toFixed(2)}</td>
+        <td class="right mono">₹${s.low.toFixed(2)}</td>
+        <td class="right mono">₹${s.high.toFixed(2)}</td>
+        <td class="right mono">${s.vol.toLocaleString("en-IN")}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+loadData();
+setInterval(loadData, 300000); // Auto-refreshes every 5 minutes during market hours
+</script>
+</body>
+</html>
