@@ -1,109 +1,201 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stock Ripple — Live NSE Market Screener</title>
-  <!-- FIX 1: Correct Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FIX 2: Correct Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['【entity-Inter¦canonical_name=Inter】', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            bgMain: '#090b10',
-            bgCard: '#10141d',
-            bgRowHover: '#161b26',
-            borderSubtle: '#1e2533',
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body { background-color: #090b10; color: #e2e8f0; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stock Ripple — Live NSE/BSE Screener (> ₹100)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: {
+    fontFamily: { sans: ['Inter','sans-serif'], mono: ['JetBrains Mono','monospace'] },
+    colors: { bgMain:'#090b10', bgCard:'#10141d', bgRowHover:'#161b26', borderSubtle:'#1e2533' }
+  }}
+}
+</script>
+<style>body{background:#090b10;color:#e2e8f0}</style>
 </head>
 <body class="min-h-screen antialiased">
 
-  <header class="border-b border-borderSubtle bg-bgCard/90 sticky top-0 z-30">
-    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
-        <h1 class="font-bold tracking-tight text-white text-base sm:text-lg">
-          STOCK <span class="text-emerald-400">RIPPLE</span>
-        </h1>
-      </div>
-      <div class="flex items-center gap-2.5">
-        <span id="statusText" class="text-xs font-mono text-slate-400 hidden sm:inline">Ready</span>
-        <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer bg-bgMain px-2.5 py-1.5 rounded-lg border border-borderSubtle">
-          <input type="checkbox" id="autoRefreshToggle" checked class="accent-emerald-500">
-          <span>Auto</span>
-        </label>
-        <button onclick="fetchAllStocks()" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
-          Refresh
-        </button>
-      </div>
+<header class="border-b border-borderSubtle bg-bgCard/90 sticky top-0 z-30">
+  <div class="max-w-[1440px] mx-auto px-4 h-14 flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2.5">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+      <h1 class="font-bold text-white">STOCK <span class="text-emerald-400">RIPPLE</span></h1>
     </div>
-  </header>
-
-  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 space-y-5">
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
-        <div class="text-[11px] font-mono uppercase text-slate-400">Advances</div>
-        <div id="advancesCount" class="text-2xl font-bold font-mono text-emerald-400 mt-1">0</div>
-      </div>
-      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
-        <div class="text-[11px] font-mono uppercase text-slate-400">Declines</div>
-        <div id="declinesCount" class="text-2xl font-bold font-mono text-rose-400 mt-1">0</div>
-      </div>
-      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
-        <div class="text-[11px] font-mono uppercase text-slate-400">Unchanged</div>
-        <div id="unchangedCount" class="text-2xl font-bold font-mono text-white mt-1">0</div>
-      </div>
-      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
-        <div class="text-[11px] font-mono uppercase text-slate-400">Quotes Loaded</div>
-        <div id="loadedCount" class="text-2xl font-bold font-mono text-amber-400 mt-1">0/0</div>
-      </div>
+    <div class="flex items-center gap-2">
+      <span id="statusText" class="text-xs font-mono text-slate-400 hidden md:inline">Ready</span>
+      <button onclick="loadAllNSESymbols()" id="loadAllBtn" class="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-medium hover:bg-amber-500/25">
+        Load All NSE (~2000)
+      </button>
+      <label class="flex items-center gap-1.5 text-xs text-slate-400 bg-bgMain px-2.5 py-1.5 rounded-lg border border-borderSubtle cursor-pointer">
+        <input type="checkbox" id="autoRefreshToggle" checked class="accent-emerald-500"><span>Auto</span>
+      </label>
+      <button onclick="fetchAllStocks()" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-medium">Refresh</button>
     </div>
+  </div>
+</header>
 
-    <div class="flex flex-col md:flex-row gap-3 justify-between">
-      <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search symbol or company..." class="flex-1 bg-bgCard border border-borderSubtle rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
-      <div class="flex items-center gap-2">
-        <div class="flex items-center bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
-          <input type="text" id="newSymbolInput" placeholder="Add NSE (e.g. TCS)" class="bg-transparent px-3 py-2 text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none w-36" onkeydown="if(event.key==='Enter') addCustomSymbol()" />
-          <button onclick="addCustomSymbol()" class="px-3 py-2 bg-slate-800 text-xs font-medium text-emerald-400 border-l border-borderSubtle">+ Add</button>
-        </div>
-        <select id="sortSelect" onchange="renderTable()" class="bg-bgCard border border-borderSubtle rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none">
-          <option value="chgPctDesc">% Change ↓</option>
-          <option value="chgPctAsc">% Change ↑</option>
-          <option value="ltpDesc">LTP ↓</option>
-          <option value="volDesc">Volume ↓</option>
-          <option value="delivDesc">Prev Deliv % ↓</option>
-        </select>
+<main class="max-w-[1440px] mx-auto px-4 py-5 space-y-4">
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-bgCard border border-borderSubtle rounded-xl p-4"><div class="text-[11px] font-mono uppercase text-slate-400">Advances (>₹100)</div><div id="advancesCount" class="text-2xl font-bold font-mono text-emerald-400 mt-1">0</div></div>
+    <div class="bg-bgCard border border-borderSubtle rounded-xl p-4"><div class="text-[11px] font-mono uppercase text-slate-400">Declines (>₹100)</div><div id="declinesCount" class="text-2xl font-bold font-mono text-rose-400 mt-1">0</div></div>
+    <div class="bg-bgCard border border-borderSubtle rounded-xl p-4"><div class="text-[11px] font-mono uppercase text-slate-400">Unchanged</div><div id="unchangedCount" class="text-2xl font-bold font-mono text-white mt-1">0</div></div>
+    <div class="bg-bgCard border border-borderSubtle rounded-xl p-4"><div class="text-[11px] font-mono uppercase text-slate-400">Quotes Scanned</div><div id="loadedCount" class="text-2xl font-bold font-mono text-amber-400 mt-1">0/0</div></div>
+  </div>
+
+  <!-- Search, Filters & Controls -->
+  <div class="flex flex-col lg:flex-row gap-3 justify-between">
+    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search symbol or company..." class="flex-1 bg-bgCard border border-borderSubtle rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+    
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Min Price Filter -->
+      <div class="flex items-center gap-1.5 bg-bgCard border border-borderSubtle rounded-xl px-3 py-2">
+        <span class="text-[11px] font-mono uppercase text-slate-400">Min ₹</span>
+        <input type="number" id="minPriceInput" value="100" oninput="updateSummaryCards(); renderTable();" class="bg-transparent w-16 text-xs font-mono text-emerald-400 font-bold focus:outline-none" />
       </div>
-    </div>
 
-    <div class="bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-borderSubtle text-[11px] font-mono uppercase text-slate-400 bg-bgMain/60">
-              <th class="py-3 px-4">#</th>
-              <th class="py-3 px-4">Symbol</th>
-              <th class="py-3 px-4">Company</th>
-              <th class="py-3 px-4 text-right">LTP</th>
-              <th class="py-3 px-4 text-right">Chg</th>
-              <th class="py-3 px-4 text-right">Chg %</th>
-              <th class="py-3 px-4 text-right">Day Low</th>
-              <th class="py-3 px-4 text-right">Day High</th>
-              <th class="py-3 px-4 text-right">Volume</th>
-              <th class="py-3 px-4 text-right">Prev Deliv %</th>
-             
+      <!-- Add NSE or BSE Symbol -->
+      <div class="flex items-center bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
+        <input type="text" id="newSymbolInput" placeholder="TCS or 500325.BO" class="bg-transparent px-3 py-2 text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none w-36" onkeydown="if(event.key==='Enter') addCustomSymbol()" />
+        <button onclick="addCustomSymbol()" class="px-3 py-2 bg-slate-800 text-xs font-medium text-emerald-400 border-l border-borderSubtle">+ Add</button>
+      </div>
+
+      <!-- Upload Custom CSV (NSE/BSE list) -->
+      <label class="px-3 py-2 bg-bgCard border border-borderSubtle rounded-xl text-xs font-medium text-slate-300 hover:border-slate-600 cursor-pointer">
+        Upload CSV
+        <input type="file" accept=".csv,.txt" onchange="handleCSVUpload(event)" class="hidden" />
+      </label>
+
+      <!-- Sort -->
+      <select id="sortSelect" onchange="renderTable()" class="bg-bgCard border border-borderSubtle rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none">
+        <option value="chgPctDesc">% Change ↓</option>
+        <option value="chgPctAsc">% Change ↑</option>
+        <option value="ltpDesc">LTP ↓</option>
+        <option value="volDesc">Volume ↓</option>
+        <option value="delivDesc">Prev Deliv % ↓</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Stock Table -->
+  <div class="bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-borderSubtle text-[11px] font-mono uppercase text-slate-400 bg-bgMain/60">
+          <th class="py-3 px-4">#</th>
+          <th class="py-3 px-4">Symbol</th>
+          <th class="py-3 px-4">Company</th>
+          <th class="py-3 px-4 text-right">LTP</th>
+          <th class="py-3 px-4 text-right">Chg</th>
+          <th class="py-3 px-4 text-right">Chg %</th>
+          <th class="py-3 px-4 text-right">Day Low</th>
+          <th class="py-3 px-4 text-right">Day High</th>
+          <th class="py-3 px-4 text-right">Volume</th>
+          <th class="py-3 px-4 text-right">Prev Deliv %</th>
+          <th class="py-3 px-4 text-right">Updated</th>
+          <th class="py-3 px-4"></th>
+        </tr></thead>
+        <tbody id="stockTableBody" class="divide-y divide-borderSubtle/60 text-sm"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+const DEFAULT_SYMBOLS = [
+  { symbol:'PERMAGN', name:'Permanent Magnets Ltd' },
+  { symbol:'ITI', name:'ITI Ltd' },
+  { symbol:'SAMBHV', name:'Sambhv Steel Tubes Ltd' },
+  { symbol:'INDIAGLYCO', name:'India Glycols Ltd' },
+  { symbol:'SCPL', name:'Sheetal Cool Products Ltd' },
+  { symbol:'WINDMACHIN', name:'Windsor Machines Ltd' },
+  { symbol:'COMSYN', name:'Commercial Syn Bags Ltd' },
+  { symbol:'AJMERA', name:'Ajmera Realty & Infra India Ltd' },
+  { symbol:'RATNAVEER', name:'Ratnaveer Precision Eng Ltd' },
+  { symbol:'SPORTKING', name:'Sportking India Ltd' },
+  { symbol:'JSLL', name:'Jeena Sikho Lifecare Ltd' },
+  { symbol:'RELIANCE', name:'Reliance Industries Ltd' },
+  { symbol:'TCS', name:'Tata Consultancy Services Ltd' },
+  { symbol:'HDFCBANK', name:'HDFC Bank Ltd' },
+  { symbol:'INFY', name:'Infosys Ltd' },
+  { symbol:'TATAMOTORS', name:'Tata Motors Ltd' },
+  { symbol:'SBIN', name:'State Bank of India' },
+  { symbol:'HAL', name:'Hindustan Aeronautics Ltd' },
+  { symbol:'BEL', name:'Bharat Electronics Ltd' }
+];
+
+let watchlist = DEFAULT_SYMBOLS;
+try {
+  const saved = localStorage.getItem('stockRipple_watchlist_v2');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.length > 0) watchlist = parsed;
+  }
+} catch(e) {
+  localStorage.removeItem('stockRipple_watchlist_v2');
+}
+
+let stockDataMap = {};
+let nseDeliveryMap = {};
+let isFetching = false;
+
+const CORS_PROXIES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+];
+
+async function fetchWithProxyFallback(targetUrl){
+  for(let i=0;i<CORS_PROXIES.length;i++){
+    try{
+      const res = await fetch(CORS_PROXIES[i](targetUrl), {cache:'no-store'});
+      if(res.ok) return await res.text();
+    }catch(e){}
+  }
+  throw new Error('Proxy timeout');
+}
+
+function formatIndianVolume(num){
+  if(!num || isNaN(num)) return '—';
+  if(num>=10000000) return (num/10000000).toFixed(2)+' Cr';
+  if(num>=100000) return (num/100000).toFixed(2)+' L';
+  if(num>=1000) return (num/1000).toFixed(1)+' K';
+  return num.toString();
+}
+
+function formatPrice(val){
+  if(val===undefined || val===null || isNaN(val)) return '—';
+  return val.toLocaleString('en-IN',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function timeAgo(ts){
+  if(!ts) return '—';
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return s+'s ago';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  return new Date(ts).toLocaleTimeString('en-IN');
+}
+
+// 1. Fetch ALL Active NSE EQ Stocks directly from NSE Official Equity Master CSV
+async function loadAllNSESymbols() {
+  const btn = document.getElementById('loadAllBtn');
+  const status = document.getElementById('statusText');
+  btn.textContent = 'Fetching NSE List...';
+  status.textContent = 'Downloading NSE Master List...';
+
+  try {
+    const csvText = await fetchWithProxyFallback('https://nseindia.com');
+    const lines = csvText.split('\n');
+    const newSymbols = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      // EQUITY_L.csv format: SYMBOL, NAME OF COMPANY, SERIES, ...
+      if (cols && cols && cols.trim() === 'EQ') {
+        const sym = cols.trim().replace(/"/g, '');
+        const name = cols.trim().replace(/"/g, '');
+        if (sym) newSymbols.push({ symbol: sym, name: name });
