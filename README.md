@@ -1,2 +1,110 @@
-# The-Tape-New
-Stock Ripple
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Ripple — Live NSE Market Screener</title>
+  <!-- FIX 1: Correct Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FIX 2: Correct Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['【entity-Inter¦canonical_name=Inter】', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bgMain: '#090b10',
+            bgCard: '#10141d',
+            bgRowHover: '#161b26',
+            borderSubtle: '#1e2533',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #090b10; color: #e2e8f0; }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <header class="border-b border-borderSubtle bg-bgCard/90 sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+        <h1 class="font-bold tracking-tight text-white text-base sm:text-lg">
+          STOCK <span class="text-emerald-400">RIPPLE</span>
+        </h1>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <span id="statusText" class="text-xs font-mono text-slate-400 hidden sm:inline">Ready</span>
+        <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer bg-bgMain px-2.5 py-1.5 rounded-lg border border-borderSubtle">
+          <input type="checkbox" id="autoRefreshToggle" checked class="accent-emerald-500">
+          <span>Auto</span>
+        </label>
+        <button onclick="fetchAllStocks()" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
+          Refresh
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 space-y-5">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Advances</div>
+        <div id="advancesCount" class="text-2xl font-bold font-mono text-emerald-400 mt-1">0</div>
+      </div>
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Declines</div>
+        <div id="declinesCount" class="text-2xl font-bold font-mono text-rose-400 mt-1">0</div>
+      </div>
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Unchanged</div>
+        <div id="unchangedCount" class="text-2xl font-bold font-mono text-white mt-1">0</div>
+      </div>
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Quotes Loaded</div>
+        <div id="loadedCount" class="text-2xl font-bold font-mono text-amber-400 mt-1">0/0</div>
+      </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-3 justify-between">
+      <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search symbol or company..." class="flex-1 bg-bgCard border border-borderSubtle rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+      <div class="flex items-center gap-2">
+        <div class="flex items-center bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
+          <input type="text" id="newSymbolInput" placeholder="Add NSE (e.g. TCS)" class="bg-transparent px-3 py-2 text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none w-36" onkeydown="if(event.key==='Enter') addCustomSymbol()" />
+          <button onclick="addCustomSymbol()" class="px-3 py-2 bg-slate-800 text-xs font-medium text-emerald-400 border-l border-borderSubtle">+ Add</button>
+        </div>
+        <select id="sortSelect" onchange="renderTable()" class="bg-bgCard border border-borderSubtle rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none">
+          <option value="chgPctDesc">% Change ↓</option>
+          <option value="chgPctAsc">% Change ↑</option>
+          <option value="ltpDesc">LTP ↓</option>
+          <option value="volDesc">Volume ↓</option>
+          <option value="delivDesc">Prev Deliv % ↓</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-borderSubtle text-[11px] font-mono uppercase text-slate-400 bg-bgMain/60">
+              <th class="py-3 px-4">#</th>
+              <th class="py-3 px-4">Symbol</th>
+              <th class="py-3 px-4">Company</th>
+              <th class="py-3 px-4 text-right">LTP</th>
+              <th class="py-3 px-4 text-right">Chg</th>
+              <th class="py-3 px-4 text-right">Chg %</th>
+              <th class="py-3 px-4 text-right">Day Low</th>
+              <th class="py-3 px-4 text-right">Day High</th>
+              <th class="py-3 px-4 text-right">Volume</th>
+              <th class="py-3 px-4 text-right">Prev Deliv %</th>
+             
