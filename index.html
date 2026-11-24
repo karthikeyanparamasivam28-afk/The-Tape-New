@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Stock Ripple — Live NSE/BSE Screener</title>
+<title>Stock Ripple — Live NSE Screener (≥₹100)</title>
 <style>
   :root { --bg-main:#090b10; --bg-card:#10141d; --bg-hover:#161b26; --border:#1e2533; --text-main:#e2e8f0; --text-muted:#94a3b8; --green:#34d399; --green-bg:rgba(16,185,129,0.14); --red:#fb7185; --red-bg:rgba(244,63,94,0.14); --amber:#fbbf24; }
-    * { box-sizing:border-box; margin:0; padding:0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
   body { background:var(--bg-main); color:var(--text-main); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.4; }
   .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
   header { background:rgba(16,20,29,0.95); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; padding:12px 16px; }
@@ -17,14 +17,16 @@
   .controls-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .status { font-size:12px; color:var(--text-muted); margin-right:4px; }
   button,.btn-label { background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  button:hover,.btn-label:hover { background:var(--bg-hover); }
   .btn-primary { background:var(--green-bg); color:var(--green); border-color:rgba(52,211,153,0.35); }
+  .btn-amber { background:rgba(251,191,36,0.14); color:var(--amber); border-color:rgba(251,191,36,0.35); }
   main { max-width:1360px; margin:0 auto; padding:16px; }
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
   .card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
   .card-label { font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
   .card-val { font-size:24px; font-weight:700; margin-top:4px; }
   .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
-  .search-box { flex:1 1 240px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:9px 14px; color:#fff; font-size:13px; outline:none; }
+  .search-box { flex:1 1 220px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:9px 14px; color:#fff; font-size:13px; outline:none; }
   .filter-group { display:flex; align-items:center; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:4px 10px; gap:6px; font-size:12px; color:var(--text-muted); }
   .filter-group input { background:transparent; border:none; color:var(--green); font-weight:700; width:65px; font-size:12px; outline:none; }
   .add-group { display:flex; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
@@ -32,54 +34,97 @@
   .add-group button { border:none; border-left:1px solid var(--border); border-radius:0; background:#182030; color:var(--green); }
   select { background:var(--bg-card); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; font-size:12px; outline:none; }
   .table-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; text-align:left; min-width:820px; }
+  table { width:100%; border-collapse:collapse; text-align:left; min-width:860px; }
   th { background:#0c0f16; color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; padding:12px 14px; border-bottom:1px solid var(--border); }
   td { padding:11px 14px; border-bottom:1px solid rgba(30,37,51,0.7); font-size:13px; white-space:nowrap; }
   tr:hover td { background:var(--bg-hover); }
   .right { text-align:right; } .pos { color:var(--green); } .neg { color:var(--red); } .neu { color:var(--text-main); }
   .badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:12px; font-weight:600; }
   .badge-pos { background:var(--green-bg); color:var(--green); } .badge-neg { background:var(--red-bg); color:var(--red); } .badge-neu { background:#1e2533; color:var(--text-muted); }
-  .deliv-hi { background:rgba(251,191,36,0.15); color:var(--amber); padding:2px 6px; border-radius:5px; }
-  .company-cell { color:var(--text-muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; }
+  .company-cell { color:var(--text-muted); max-width:200px; overflow:hidden; text-overflow:ellipsis; }
   .del-btn { background:none; border:none; color:#475569; padding:2px 6px; font-size:13px; }
+  .del-btn:hover { color:var(--red); background:none; }
 </style>
 </head>
 <body>
-<header><div class="header-inner"><div class="brand"><div class="dot"></div>STOCK <span>RIPPLE</span></div><div class="controls-top"><span id="statusText" class="status mono">Ready</span><button onclick="resetWatchlist()">Reset List</button><label class="btn-label"><input type="checkbox" id="autoRefreshToggle" checked> Auto</label><button class="btn-primary" onclick="fetchAllStocks()">Refresh</button></div></div></header>
+<header>
+  <div class="header-inner">
+    <div class="brand"><div class="dot"></div>STOCK <span>RIPPLE</span></div>
+    <div class="controls-top">
+      <span id="statusText" class="status mono">Initializing...</span>
+      <button class="btn-amber" onclick="loadFullNSEMaster()">Load All 2,000+ NSE Stocks</button>
+      <button onclick="resetWatchlist()">Reset Core List</button>
+      <label class="btn-label"><input type="checkbox" id="autoRefreshToggle"> Auto (60s)</label>
+      <button class="btn-primary" onclick="fetchAllStocks()">Refresh Prices</button>
+    </div>
+  </div>
+</header>
+
 <main>
   <div class="cards">
-    <div class="card"><div class="card-label mono">Advances (≥₹100)</div><div id="advancesCount" class="card-val mono pos">0</div></div>
-    <div class="card"><div class="card-label mono">Declines (≥₹100)</div><div id="declinesCount" class="card-val mono neg">0</div></div>
+    <div class="card"><div class="card-label mono">Advances (≥Min ₹)</div><div id="advancesCount" class="card-val mono pos">0</div></div>
+    <div class="card"><div class="card-label mono">Declines (≥Min ₹)</div><div id="declinesCount" class="card-val mono neg">0</div></div>
     <div class="card"><div class="card-label mono">Unchanged</div><div id="unchangedCount" class="card-val mono">0</div></div>
     <div class="card"><div class="card-label mono">Quotes Loaded</div><div id="loadedCount" class="card-val mono" style="color:var(--amber)">0/0</div></div>
   </div>
+
   <div class="toolbar">
     <input type="text" id="searchInput" class="search-box" oninput="renderTable()" placeholder="Search symbol or company..." />
     <div class="filter-group mono"><span>MIN ₹</span><input type="number" id="minPriceInput" value="100" oninput="updateSummaryCards(); renderTable();" /></div>
-    <div class="add-group"><input type="text" id="newSymbolInput" class="mono" placeholder="TCS / 500325.BO" onkeydown="if(event.key==='Enter') addCustomSymbol()" /><button onclick="addCustomSymbol()">+ Add</button></div>
-    <label class="btn-label">Upload CSV<input type="file" accept=".csv,.txt" onchange="handleCSVUpload(event)" style="display:none" /></label>
-    <select id="sortSelect" onchange="renderTable()"><option value="chgPctDesc">% Change ↓</option><option value="chgPctAsc">% Change ↑</option><option value="ltpDesc">LTP ↓</option><option value="volDesc">Volume ↓</option><option value="delivDesc">Prev Deliv % ↓</option></select>
+    <div class="add-group"><input type="text" id="newSymbolInput" class="mono" placeholder="e.g. ZOMATO" onkeydown="if(event.key==='Enter') addCustomSymbol()" /><button onclick="addCustomSymbol()">+ Add</button></div>
+    <label class="btn-label">Upload NSE CSV<input type="file" accept=".csv,.txt" onchange="handleCSVUpload(event)" style="display:none" /></label>
+    <select id="sortSelect" onchange="renderTable()">
+      <option value="chgPctDesc">% Change ↓</option>
+      <option value="chgPctAsc">% Change ↑</option>
+      <option value="ltpDesc">LTP ↓</option>
+      <option value="ltpAsc">LTP ↑</option>
+      <option value="volDesc">Volume ↓</option>
+    </select>
   </div>
-  <div class="table-wrap"><table><thead><tr class="mono"><th>#</th><th>Symbol</th><th>Company</th><th class="right">LTP</th><th class="right">Chg</th><th class="right">Chg %</th><th class="right">Day Low</th><th class="right">Day High</th><th class="right">Volume</th><th class="right">Prev Deliv %</th><th class="right">Updated</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr class="mono">
+          <th>#</th>
+          <th>Symbol</th>
+          <th>Company</th>
+          <th class="right">LTP (₹)</th>
+          <th class="right">Chg (₹)</th>
+          <th class="right">Chg %</th>
+          <th class="right">Prev Close</th>
+          <th class="right">Day Low</th>
+          <th class="right">Day High</th>
+          <th class="right">Volume</th>
+          <th class="right">Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="stockTableBody"></tbody>
+    </table>
+  </div>
 </main>
+
 <script>
-function getItem(arr, idx) { if (!arr || !arr.length) return undefined; if (idx < 0) return arr.slice(idx).shift(); return arr.slice(idx, idx + 1).shift(); }
-const RAW_NSE_LIST = [
-  "PERMAGN|Permanent Magnets Ltd","ITI|ITI Ltd","SAMBHV|Sambhv Steel Tubes Ltd","INDIAGLYCO|India Glycols Ltd","SCPL|Sheetal Cool Products Ltd","WINDMACHIN|Windsor Machines Ltd","COMSYN|Commercial Syn Bags Ltd","AJMERA|Ajmera Realty & Infra","RATNAVEER|Ratnaveer Precision Eng","SPORTKING|Sportking India Ltd","JSLL|Jeena Sikho Lifecare Ltd",
-  "RELIANCE|Reliance Industries Ltd","TCS|Tata Consultancy Services","HDFCBANK|HDFC Bank Ltd","BHARTIARTL|Bharti Airtel Ltd","ICICIBANK|ICICI Bank Ltd","INFY|Infosys Ltd","SBIN|State Bank of India","HINDUNILVR|Hindustan Unilever Ltd","ITC|ITC Ltd","LT|Larsen & Toubro Ltd","HCLTECH|HCL Technologies Ltd","BAJFINANCE|Bajaj Finance Ltd","SUNPHARMA|Sun Pharmaceutical Ind","M&M|Mahindra & Mahindra Ltd","MARUTI|Maruti Suzuki India Ltd","KOTAKBANK|Kotak Mahindra Bank","AXISBANK|Axis Bank Ltd","TITAN|Titan Company Ltd","ULTRACEMCO|UltraTech Cement Ltd","NTPC|NTPC Ltd","ONGC|Oil & Natural Gas Corp","ADANIENT|Adani Enterprises Ltd","ADANIPORTS|Adani Ports & SEZ","WIPRO|Wipro Ltd","POWERGRID|Power Grid Corp of India","TATAMOTORS|Tata Motors Ltd","COALINDIA|Coal India Ltd","BAJAJFINSV|Bajaj Finserv Ltd","HAL|Hindustan Aeronautics Ltd","BEL|Bharat Electronics Ltd","TRENT|Trent Ltd","JSWSTEEL|JSW Steel Ltd",
-  "TATAPOWER|Tata Power Ltd","TATASTEEL|Tata Steel Ltd","TECHM|Tech Mahindra Ltd","TATACONSUM|Tata Consumer Products","TATACHEM|Tata Chemicals Ltd","TATAELXSI|Tata Elxsi Ltd","TATACOMM|Tata Communications Ltd","JIOFIN|Jio Financial Services","IDEA|Vodafone Idea Ltd","YESBANK|Yes Bank Ltd","SUZLON|Suzlon Energy Ltd","NHPC|NHPC Ltd","SJVN|SJVN Ltd","IRFC|Indian Railway Finance Corp","RVNL|Rail Vikas Nigam Ltd","IRCON|Ircon International Ltd","NBCC|NBCC (India) Ltd","HUDCO|Housing & Urban Dev Corp","IREDA|Indian Renewable Energy Dev Agency","SAIL|Steel Authority of India","VEDL|Vedanta Ltd","HINDCOPPER|Hindustan Copper Ltd","NMDC|NMDC Ltd","GMRINFRA|GMR Airports Ltd","JPASSOCIAT|Jaiprakash Associates Ltd","RPOWER|Reliance Power Ltd","RINFRA|Reliance Infrastructure Ltd","JPPOWER|Jaiprakash Power Ventures","DISHTV|Dish TV India Ltd","ZEEL|Zee Entertainment Enterprises","NETWORK18|Network18 Media Ltd","TV18BRDCST|TV18 Broadcast Ltd","SOUTHBANK|South Indian Bank","FEDERALBNK|Federal Bank Ltd","IDFCFIRSTB|IDFC First Bank Ltd","PNB|Punjab National Bank","BANKBARODA|Bank of Baroda","CANBK|Canara Bank","UNIONBANK|Union Bank of India","IOB|Indian Overseas Bank","CENTRALBK|Central Bank of India","MAHABANK|Bank of Maharashtra","UCOBANK|UCO Bank","PSB|Punjab & Sind Bank","JKBANK|Jammu & Kashmir Bank","KARURVYSYA|Karur Vysya Bank Ltd","DCBBANK|DCB Bank Ltd","RBLBANK|RBL Bank Ltd","EQUITASBNK|Equitas Small Finance Bank","UJJIVANSFB|Ujjivan Small Finance Bank","JUBLFOOD|Jubilant FoodWorks Ltd","PAYTM|One 97 Communications","ZOMATO|Eternal Ltd","NYKAA|FSN E-Commerce Ventures","DELHIVERY|Delhivery Ltd","POLICYBZR|PB Fintech Ltd","IRCTC|Indian Railway Catering & Tourism","TITAGARH|Titagarh Rail Systems","TEXRAIL|Texmaco Rail & Engineering","JWL|Jupiter Wagons Ltd","BEML|BEML Ltd","GRSE|Garden Reach Shipbuilders","MAZDOCK|Mazagon Dock Shipbuilders","COCHINSHIP|Cochin Shipyard Ltd","PARAS|Paras Defence & Space Tech","IDEAFORGE|Ideaforge Technology Ltd","MTARTECH|MTAR Technologies Ltd","ASTRAL|Astral Ltd","KPITTECH|KPIT Technologies Ltd","PERSISTENT|Persistent Systems Ltd","COFORGE|Coforge Ltd","MPHASIS|Mphasis Ltd","LTIM|LTIMindtree Ltd","HINDALCO|Hindalco Industries Ltd","JINDALSTEL|Jindal Steel Ltd","DLF|DLF Ltd","GODREJPROP|Godrej Properties Ltd","OBEROIRLTY|Oberoi Realty Ltd","PRESTIGE|Prestige Estates Projects","BRIGADE|Brigade Enterprises Ltd","LODHA|Macrotech Developers Ltd","MANKIND|Mankind Pharma Ltd","DIVISLAB|Divis Laboratories Ltd","CIPLA|Cipla Ltd","DRREDDY|Dr Reddys Laboratories","LUPIN|Lupin Ltd","AUROPHARMA|Aurobindo Pharma Ltd","TORNTPHARM|Torrent Pharmaceuticals","ALKEM|Alkem Laboratories Ltd","APOLLOHOSP|Apollo Hospitals Enterprise","MAXHEALTH|Max Healthcare Institute","FORTIS|Fortis Healthcare Ltd"
-];
-const DEFAULT_SYMBOLS = RAW_NSE_LIST.map(function(s){ var p=s.split('|'); return {symbol:p[0], name:p[1]||p[0]}; });
-const STORAGE_KEY = 'stockRipple_watchlist_v4';
-let watchlist = DEFAULT_SYMBOLS.slice();
-try { var saved=localStorage.getItem(STORAGE_KEY); if(saved){ var parsed=JSON.parse(saved); if(Array.isArray(parsed)&&parsed.length>0) watchlist=parsed; } else { localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SYMBOLS)); } } catch(e){ watchlist=DEFAULT_SYMBOLS.slice(); }
-let stockDataMap={}; let nseDeliveryMap={}; let sortBy='chgPctDesc';
-function getMinPrice(){ var v=parseFloat(document.getElementById('minPriceInput').value); return isNaN(v)?0:v; }
-const CORS_PROXIES=[function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);},function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},function(u){return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u);}];
-async function fetchWithProxyFallback(targetUrl){ for(let i=0;i<CORS_PROXIES.length;i++){ try{ const res=await fetch(CORS_PROXIES[i](targetUrl),{cache:'no-store'}); if(res.ok) return await res.text(); }catch(e){} } throw new Error('Proxy timeout'); }
-async function fetchWithTimeout(url,ms){ ms=ms||8000; const ctrl=new AbortController(); const t=setTimeout(function(){ctrl.abort();},ms); try{ const res=await fetch(url,{signal:ctrl.signal}); return res; } finally{ clearTimeout(t); } }
-function formatIndianVolume(num){ if(!num||isNaN(num)) return '—'; if(num>=10000000) return (num/10000000).toFixed(2)+' Cr'; if(num>=100000) return (num/100000).toFixed(2)+' L'; if(num>=1000) return (num/1000).toFixed(1)+' K'; return num.toString(); }
-function formatPrice(val){ if(val===undefined||val===null||isNaN(val)) return '—'; return val.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function timeAgo(ts){ if(!ts) return '—'; const s=Math.floor((Date.now()-ts)/1000); if(s<60) return s+'s ago'; if(s<3600) return Math.floor(s/60)+'m ago'; return new Date(ts).toLocaleTimeString('en-IN'); }
-function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function getStooqSymbol(item){ var sym=item.symbol.trim().toUpperCase(); if(sym.index
+// Core starter list of liquid NSE stocks so the page loads fast immediately
+const STARTER_NSE = [
+  "RELIANCE|Reliance Industries Ltd","TCS|Tata Consultancy Services","HDFCBANK|HDFC Bank Ltd","BHARTIARTL|Bharti Airtel Ltd",
+  "ICICIBANK|ICICI Bank Ltd","INFY|Infosys Ltd","SBIN|State Bank of India","HINDUNILVR|Hindustan Unilever Ltd",
+  "ITC|ITC Ltd","LT|Larsen & Toubro Ltd","HCLTECH|HCL Technologies Ltd","BAJFINANCE|Bajaj Finance Ltd",
+  "SUNPHARMA|Sun Pharmaceutical Ind","M&M|Mahindra & Mahindra Ltd","MARUTI|Maruti Suzuki India Ltd","KOTAKBANK|Kotak Mahindra Bank Ltd",
+  "AXISBANK|Axis Bank Ltd","TITAN|Titan Company Ltd","ULTRACEMCO|UltraTech Cement Ltd","ASIANPAINT|Asian Paints Ltd",
+  "NTPC|NTPC Ltd","TATAMOTORS|Tata Motors Ltd","ADANIENT|Adani Enterprises Ltd","ADANIPORTS|Adani Ports & SEZ",
+  "POWERGRID|Power Grid Corp","WIPRO|Wipro Ltd","COALINDIA|Coal India Ltd","BAJAJFINSV|Bajaj Finserv Ltd",
+  "ONGC|Oil & Natural Gas Corp","NESTLEIND|Nestle India Ltd","JSWSTEEL|JSW Steel Ltd","TATASTEEL|Tata Steel Ltd",
+  "GRASIM|Grasim Industries Ltd","TECHM|Tech Mahindra Ltd","HINDALCO|Hindalco Industries Ltd","INDUSINDBK|IndusInd Bank Ltd",
+  "DRREDDY|Dr. Reddy's Laboratories","CIPLA|Cipla Ltd","SBILIFE|SBI Life Insurance","HDFCLIFE|HDFC Life Insurance",
+  "BRITANNIA|Britannia Industries Ltd","APOLLOHOSP|Apollo Hospitals","EICHERMOT|Eicher Motors Ltd","DIVISLAB|Divi's Laboratories",
+  "BPCL|Bharat Petroleum Corp","HEROMOTOCO|Hero MotoCorp Ltd","TRENT|Trent Ltd","BEL|Bharat Electronics Ltd",
+  "HAL|Hindustan Aeronautics Ltd","VBL|Varun Beverages Ltd","ZOMATO|Zomato Ltd","JIOFIN|Jio Financial Services",
+  "DLF|DLF Ltd","SIEMENS|Siemens Ltd","ABB|ABB India Ltd","PIDILITIND|Pidilite Industries Ltd",
+  "GODREJCP|Godrej Consumer Products","INDIGO|InterGlobe Aviation Ltd","BANKBARODA|Bank of Baroda","PNB|Punjab National Bank",
+  "CANBK|Canara Bank","TVSMOTOR|TVS Motor Company Ltd","BAJAJ-AUTO|Bajaj Auto Ltd","CHOLAFIN|Cholamandalam Investment",
+  "HAVELLS|Havells India Ltd","GAIL|GAIL (India) Ltd","IOC|Indian Oil Corporation","SHREECEM|Shree Cement Ltd",
+  "AMBUJACEM|Ambuja Cements Ltd","VEDL|Vedanta Ltd","PFC|Power Finance Corporation","RECLTD|REC Ltd",
+  "IRCTC|IRCTC Ltd","IRFC|Indian Railway Finance Corp","RVNL|Rail Vikas Nigam Ltd","MAZDOCK|Mazagon Dock Shipbuilders",
+  "PERSISTENT|Persistent Systems Ltd","COFORGE|Coforge Ltd","MPHASIS|Mphasis Ltd","LTIM|LTIMindtree Ltd",
