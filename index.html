@@ -173,9 +173,12 @@ function renderTable() {
     `;
   }).join("");
 }
-
-loadData();
-setInterval(loadData, 60000); // Auto-refreshes every 1s during market hours
-</script>
-</body>
-</html>
+ loadData();
+setInterval(() => {
+  const now = new Date();
+  const hour = now.getHours();
+  // Market 9:15 to 3:30 mattum fetch pannum
+  if (hour >= 9 && hour < 16) {
+    loadData();
+  }
+}, 5000); 
