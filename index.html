@@ -1,170 +1,213 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Stock Ripple — Live NSE/BSE Screener</title>
-<style>
-  :root { --bg-main:#090b10; --bg-card:#10141d; --bg-hover:#161b26; --border:#1e2533; --text-main:#e2e8f0; --text-muted:#94a3b8; --green:#34d399; --green-bg:rgba(16,185,129,0.14); --red:#fb7185; --red-bg:rgba(244,63,94,0.14); --amber:#fbbf24; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg-main); color:var(--text-main); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.4; }
-  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
-  header { background:rgba(16,20,29,0.95); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; padding:12px 16px; }
-  .header-inner { max-width:1360px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
-  .brand { display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; color:#fff; }
-  .dot { width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); }
-  .brand span { color:var(--green); }
-  .controls-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .status { font-size:12px; color:var(--text-muted); margin-right:4px; }
-  button,.btn-label { background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
-  button:hover,.btn-label:hover { background:var(--bg-hover); }
-  .btn-primary { background:var(--green-bg); color:var(--green); border-color:rgba(52,211,153,0.35); }
-  main { max-width:1360px; margin:0 auto; padding:16px; }
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
-  .card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
-  .card-label { font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
-  .card-val { font-size:24px; font-weight:700; margin-top:4px; }
-  .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
-  .search-box { flex:1 1 240px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:9px 14px; color:#fff; font-size:13px; outline:none; }
-  .filter-group { display:flex; align-items:center; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:4px 10px; gap:6px; font-size:12px; color:var(--text-muted); }
-  .filter-group input { background:transparent; border:none; color:var(--green); font-weight:700; width:65px; font-size:12px; outline:none; }
-  .add-group { display:flex; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-  .add-group input { background:transparent; border:none; padding:8px 10px; color:#fff; font-size:12px; width:125px; text-transform:uppercase; outline:none; }
-  .add-group button { border:none; border-left:1px solid var(--border); border-radius:0; background:#182030; color:var(--green); }
-  select { background:var(--bg-card); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; font-size:12px; outline:none; }
-  .table-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; text-align:left; min-width:820px; }
-  th { background:#0c0f16; color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; padding:12px 14px; border-bottom:1px solid var(--border); }
-  td { padding:11px 14px; border-bottom:1px solid rgba(30,37,51,0.7); font-size:13px; white-space:nowrap; }
-  tr:hover td { background:var(--bg-hover); }
-  .right { text-align:right; } .pos { color:var(--green); } .neg { color:var(--red); } .neu { color:var(--text-main); }
-  .badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:12px; font-weight:600; }
-  .badge-pos { background:var(--green-bg); color:var(--green); } .badge-neg { background:var(--red-bg); color:var(--red); } .badge-neu { background:#1e2533; color:var(--text-muted); }
-  .deliv-hi { background:rgba(251,191,36,0.15); color:var(--amber); padding:2px 6px; border-radius:5px; }
-  .company-cell { color:var(--text-muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; }
-  .del-btn { background:none; border:none; color:#475569; padding:2px 6px; font-size:13px; }
-  .del-btn:hover { color:var(--red); background:none; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Ripple — Live NSE Market Screener</title>
+  <script src="https://tailwindcss.com"></script>
+  <link href="https://googleapis.com" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bgMain: '#090b10',
+            bgCard: '#10141d',
+            bgRowHover: '#161b26',
+            borderSubtle: '#1e2533',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #090b10; color: #e2e8f0; }
+  </style>
 </head>
-<body>
-<header>
-  <div class="header-inner">
-    <div class="brand"><div class="dot"></div>STOCK <span>RIPPLE</span></div>
-    <div class="controls-top">
-      <span id="statusText" class="status mono">Ready</span>
-      <button onclick="resetWatchlist()">Reset List</button>
-      <label class="btn-label"><input type="checkbox" id="autoRefreshToggle" checked onchange="toggleAutoRefresh()"> Auto</label>
-      <button class="btn-primary" onclick="fetchAllStocks()">Refresh</button>
+<body class="min-h-screen antialiased">
+
+  <header class="border-b border-borderSubtle bg-bgCard/90 sticky top-0 z-30 backdrop-blur">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+        <h1 class="font-bold tracking-tight text-white text-base sm:text-lg">
+          STOCK <span class="text-emerald-400">RIPPLE</span>
+        </h1>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <span id="statusText" class="text-xs font-mono text-slate-400">Initializing...</span>
+        <button onclick="resetWatchlist()" class="px-2.5 py-1.5 rounded-lg bg-bgMain hover:bg-slate-800 text-slate-300 border border-borderSubtle text-xs font-medium">
+          Reset List
+        </button>
+        <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer bg-bgMain px-2.5 py-1.5 rounded-lg border border-borderSubtle">
+          <input type="checkbox" id="autoRefreshToggle" checked onchange="toggleAutoRefresh()" class="accent-emerald-500">
+          <span>Auto</span>
+        </label>
+        <button onclick="fetchAllStocks()" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
+          Refresh
+        </button>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
-<main>
-  <div class="cards">
-    <div class="card"><div id="advLabel" class="card-label mono">Advances (≥₹100)</div><div id="advancesCount" class="card-val mono pos">0</div></div>
-    <div class="card"><div id="decLabel" class="card-label mono">Declines (≥₹100)</div><div id="declinesCount" class="card-val mono neg">0</div></div>
-    <div class="card"><div class="card-label mono">Unchanged</div><div id="unchangedCount" class="card-val mono">0</div></div>
-    <div class="card"><div class="card-label mono">Quotes Loaded</div><div id="loadedCount" class="card-val mono" style="color:var(--amber)">0/0</div></div>
-  </div>
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 space-y-5">
+    <!-- Diagnostic Banner -->
+    <div id="diagBanner" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono px-4 py-2.5 rounded-xl"></div>
 
-  <div class="toolbar">
-    <input type="text" id="searchInput" class="search-box" oninput="renderTable()" placeholder="Search symbol or company..." />
-    <div class="filter-group mono"><span>MIN ₹</span><input type="number" id="minPriceInput" value="100" oninput="updateSummaryCards(); renderTable();" /></div>
-    <div class="add-group"><input type="text" id="newSymbolInput" class="mono" placeholder="TCS / 500325.BO" onkeydown="if(event.key==='Enter') addCustomSymbol()" /><button onclick="addCustomSymbol()">+ Add</button></div>
-    <label class="btn-label">Upload CSV<input type="file" accept=".csv,.txt" onchange="handleCSVUpload(event)" style="display:none" /></label>
-    <select id="sortSelect" onchange="renderTable()">
-      <option value="chgPctDesc">% Change ↓</option>
-      <option value="chgPctAsc">% Change ↑</option>
-      <option value="ltpDesc">LTP ↓</option>
-      <option value="volDesc">Volume ↓</option>
-      <option value="delivDesc">Prev Deliv % ↓</option>
-    </select>
-  </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Advances</div>
+        <div id="advancesCount" class="text-2xl font-bold font-mono text-emerald-400 mt-1">0</div>
+      </div>
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Declines</div>
+        <div id="declinesCount" class="text-2xl font-bold font-mono text-rose-400 mt-1">0</div>
+      </div>
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Unchanged</div>
+        <div id="unchangedCount" class="text-2xl font-bold font-mono text-white mt-1">0</div>
+      </div>
+      <div class="bg-bgCard border border-borderSubtle rounded-xl p-4">
+        <div class="text-[11px] font-mono uppercase text-slate-400">Quotes Loaded</div>
+        <div id="loadedCount" class="text-2xl font-bold font-mono text-amber-400 mt-1">0/0</div>
+      </div>
+    </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr class="mono">
-          <th>#</th>
-          <th>Symbol</th>
-          <th>Company</th>
-          <th class="right">LTP</th>
-          <th class="right">Chg</th>
-          <th class="right">Chg %</th>
-          <th class="right">Day Low</th>
-          <th class="right">Day High</th>
-          <th class="right">Volume</th>
-          <th class="right">Prev Deliv %</th>
-          <th class="right">Updated</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="stockTableBody"></tbody>
-    </table>
-  </div>
-</main>
+    <div class="flex flex-col md:flex-row gap-3 justify-between">
+      <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search symbol or company..." class="flex-1 bg-bgCard border border-borderSubtle rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+      <div class="flex items-center gap-2">
+        <div class="flex items-center bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
+          <input type="text" id="newSymbolInput" placeholder="Add NSE (e.g. TCS)" class="bg-transparent px-3 py-2 text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none w-36" onkeydown="if(event.key==='Enter') addCustomSymbol()" />
+          <button onclick="addCustomSymbol()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-emerald-400 border-l border-borderSubtle">+ Add</button>
+        </div>
+        <select id="sortSelect" onchange="renderTable()" class="bg-bgCard border border-borderSubtle rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none">
+          <option value="chgPctDesc">% Change ↓</option>
+          <option value="chgPctAsc">% Change ↑</option>
+          <option value="ltpDesc">LTP ↓</option>
+          <option value="volDesc">Volume ↓</option>
+          <option value="delivDesc">Prev Deliv % ↓</option>
+        </select>
+      </div>
+    </div>
 
-<script>
-const RAW_NSE_LIST = [
-  "PERMAGN|Permanent Magnets Ltd","ITI|ITI Ltd","SAMBHV|Sambhv Steel Tubes Ltd","INDIAGLYCO|India Glycols Ltd",
-  "SCPL|Sheetal Cool Products Ltd","WINDMACHIN|Windsor Machines Ltd","COMSYN|Commercial Syn Bags Ltd",
-  "AJMERA|Ajmera Realty & Infra","RATNAVEER|Ratnaveer Precision Eng","SPORTKING|Sportking India Ltd",
-  "JSLL|Jeena Sikho Lifecare Ltd","RELIANCE|Reliance Industries Ltd","TCS|Tata Consultancy Services",
-  "HDFCBANK|HDFC Bank Ltd","BHARTIARTL|Bharti Airtel Ltd","ICICIBANK|ICICI Bank Ltd","INFY|Infosys Ltd",
-  "SBIN|State Bank of India","HINDUNILVR|Hindustan Unilever Ltd","ITC|ITC Ltd","LT|Larsen & Toubro Ltd",
-  "HCLTECH|HCL Technologies Ltd","BAJFINANCE|Bajaj Finance Ltd","SUNPHARMA|Sun Pharmaceutical Ind",
-  "M&M|Mahindra & Mahindra Ltd","MARUTI|Maruti Suzuki India Ltd","KOTAKBANK|Kotak Mahindra Bank",
-  "AXISBANK|Axis Bank Ltd","TITAN|Titan Company Ltd","ULTRACEMCO|UltraTech Cement Ltd",
-  "NTPC|NTPC Ltd","ONGC|Oil & Natural Gas Corp"
-];
+    <div class="bg-bgCard border border-borderSubtle rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-borderSubtle text-[11px] font-mono uppercase text-slate-400 bg-bgMain/60">
+              <th class="py-3 px-4">#</th>
+              <th class="py-3 px-4">Symbol</th>
+              <th class="py-3 px-4">Company</th>
+              <th class="py-3 px-4 text-right">LTP</th>
+              <th class="py-3 px-4 text-right">Chg</th>
+              <th class="py-3 px-4 text-right">Chg %</th>
+              <th class="py-3 px-4 text-right">Day Low</th>
+              <th class="py-3 px-4 text-right">Day High</th>
+              <th class="py-3 px-4 text-right">Volume</th>
+              <th class="py-3 px-4 text-right">Prev Deliv %</th>
+              <th class="py-3 px-4 text-right">Updated</th>
+              <th class="py-3 px-4"></th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody" class="divide-y divide-borderSubtle/70 text-sm"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 
-let stocks = [];
-let refreshTimer = null;
+  <script>
+    const DEFAULT_SYMBOLS = [
+      "RELIANCE|Reliance Industries Ltd", "TCS|Tata Consultancy Services", "HDFCBANK|HDFC Bank Ltd",
+      "BHARTIARTL|Bharti Airtel Ltd", "ICICIBANK|ICICI Bank Ltd", "INFY|Infosys Ltd",
+      "SBIN|State Bank of India", "HINDUNILVR|Hindustan Unilever Ltd", "ITC|ITC Ltd",
+      "LT|Larsen & Toubro Ltd", "HCLTECH|HCL Technologies Ltd", "BAJFINANCE|Bajaj Finance Ltd",
+      "SUNPHARMA|Sun Pharmaceutical Ind", "M&M|Mahindra & Mahindra Ltd", "MARUTI|Maruti Suzuki India Ltd",
+      "KOTAKBANK|Kotak Mahindra Bank", "AXISBANK|Axis Bank Ltd", "TITAN|Titan Company Ltd",
+      "ULTRACEMCO|UltraTech Cement Ltd", "NTPC|NTPC Ltd", "ONGC|Oil & Natural Gas Corp"
+    ];
 
-function initWatchlist() {
-  const saved = localStorage.getItem("stock_ripple_list");
-  if (saved) {
-    stocks = JSON.parse(saved);
-  } else {
-    stocks = RAW_NSE_LIST.map(entry => {
-      const [symbol, company] = entry.split("|");
-      return createStockObj(symbol, company);
-    });
-  }
-  fetchAllStocks();
-  toggleAutoRefresh();
-}
+    let nseStaticData = {};
+    let stocks = [];
+    let refreshTimer = null;
 
-function createStockObj(symbol, company = "") {
-  return {
-    symbol: symbol.trim().toUpperCase(),
-    company: company || symbol.trim().toUpperCase(),
-    ltp: null,
-    prevClose: null,
-    chg: 0,
-    chgPct: 0,
-    low: null,
-    high: null,
-    volume: 0,
-    delivPct: +(Math.random() * 55 + 20).toFixed(1), // Placeholder until connected to NSE Bhavcopy API
-    updated: "--:--:--"
-  };
-}
+    function showDiag(msg) {
+      const el = document.getElementById("diagBanner");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+    }
 
-function saveWatchlist() {
-  localStorage.setItem("stock_ripple_list", JSON.stringify(stocks));
-}
+    async function loadNseJson() {
+      try {
+        const res = await fetch("./nse_data.json?t=" + Date.now());
+        if (!res.ok) {
+          showDiag(`Note: nse_data.json returned HTTP ${res.status}. Using built-in default watchlist.`);
+          return;
+        }
+        const raw = await res.json();
 
-function resetWatchlist() {
-  localStorage.removeItem("stock_ripple_list");
-  initWatchlist();
-}
+        if (Array.isArray(raw)) {
+          raw.forEach(item => {
+            const sym = (item.symbol || item.SYMBOL || "").trim().toUpperCase();
+            if (sym) {
+              nseStaticData[sym] = {
+                company: item.company || item.COMPANY || item.name || sym,
+                prevDelivPct: parseFloat(item.prevDelivPct ?? item.DELIV_PER ?? item.deliv ?? 0) || 0,
+                prevClose: parseFloat(item.prevClose ?? item.CLOSE_PRICE ?? item.close ?? 0) || null
+              };
+            }
+          });
+        } else if (raw && typeof raw === "object") {
+          for (const [key, val] of Object.entries(raw)) {
+            const sym = key.trim().toUpperCase();
+            if (typeof val === "number") {
+              nseStaticData[sym] = { company: sym, prevDelivPct: val, prevClose: null };
+            } else if (val && typeof val === "object") {
+              nseStaticData[sym] = {
+                company: val.company || val.COMPANY || val.name || sym,
+                prevDelivPct: parseFloat(val.prevDelivPct ?? val.DELIV_PER ?? val.deliv ?? 0) || 0,
+                prevClose: parseFloat(val.prevClose ?? val.CLOSE_PRICE ?? val.close ?? 0) || null
+              };
+            }
+          }
+        }
+      } catch (err) {
+        showDiag(`Could not read nse_data.json (${err.message}). Make sure you are viewing via GitHub Pages URL, not file://.`);
+      }
+    }
 
-// Fetches Yahoo Finance chart endpoint via public CORS proxy for browser-only execution
-async function fetchQuote(stock) {
-  const ticker = stock.symbol.includes(".") ? stock.symbol : `${stock.symbol}.NS`;
-  const url = `https://yahoo.com{encodeURIComponent(ticker)}?interval=1d&range=1d`;
-  const proxyUrl = `https://allorigins.win{encodeURIComponent(url)}`;
+    function createStockObj(symbol, company = "") {
+      const cleanSym = symbol.trim().toUpperCase();
+      const meta = nseStaticData[cleanSym] || {};
+      return {
+        symbol: cleanSym,
+        company: company || meta.company || cleanSym,
+        ltp: null,
+        prevClose: meta.prevClose || null,
+        chg: 0,
+        chgPct: 0,
+        low: null,
+        high: null,
+        volume: 0,
+        delivPct: meta.prevDelivPct ?? 0,
+        updated: "--:--:--"
+      };
+    }
 
-  try {
-    const res = await fetch(proxyUrl);
+    async function initWatchlist() {
+      await loadNseJson();
+      const saved = localStorage.getItem("stock_ripple_v2");
+      if (saved) {
+        stocks = JSON.parse(saved).map(s => {
+          const meta = nseStaticData[s.symbol];
+          if (meta && meta.prevDelivPct) s.delivPct = meta.prevDelivPct;
+          return s;
+        });
+      } else {
+        const jsonKeys = Object.keys(nseStaticData);
+        if (jsonKeys.length > 0) {
+          stocks = jsonKeys.slice(0, 50).map(sym => createStockObj(sym));
