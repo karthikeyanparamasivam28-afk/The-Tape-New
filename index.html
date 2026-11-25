@@ -40,7 +40,7 @@
         </h1>
       </div>
       <div class="flex items-center gap-2.5">
-        <span id="statusText" class="text-xs font-mono text-slate-400">Initializing...</span>
+        <span id="statusText" class="text-xs font-mono text-slate-400">Starting...</span>
         <button onclick="resetWatchlist()" class="px-2.5 py-1.5 rounded-lg bg-bgMain hover:bg-slate-800 text-slate-300 border border-borderSubtle text-xs font-medium">
           Reset List
         </button>
@@ -56,7 +56,6 @@
   </header>
 
   <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 space-y-5">
-    <!-- Diagnostic Banner -->
     <div id="diagBanner" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono px-4 py-2.5 rounded-xl"></div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -137,15 +136,17 @@
 
     function showDiag(msg) {
       const el = document.getElementById("diagBanner");
-      el.textContent = msg;
-      el.classList.remove("hidden");
+      if (el) {
+        el.textContent = msg;
+        el.classList.remove("hidden");
+      }
     }
 
     async function loadNseJson() {
       try {
-        const res = await fetch("./nse_data.json?t=" + Date.now());
+        const res = await fetch("nse_data.json?t=" + Date.now());
         if (!res.ok) {
-          showDiag(`Note: nse_data.json returned HTTP ${res.status}. Using built-in default watchlist.`);
+          showDiag("nse_data.json not found (HTTP " + res.status + "). Showing default watchlist.");
           return;
         }
         const raw = await res.json();
@@ -176,7 +177,7 @@
           }
         }
       } catch (err) {
-        showDiag(`Could not read nse_data.json (${err.message}). Make sure you are viewing via GitHub Pages URL, not file://.`);
+        showDiag("Could not parse nse_data.json: " + err.message);
       }
     }
 
@@ -200,7 +201,7 @@
 
     async function initWatchlist() {
       await loadNseJson();
-      const saved = localStorage.getItem("stock_ripple_v2");
+      const saved = localStorage.getItem("stock_ripple_v3");
       if (saved) {
         stocks = JSON.parse(saved).map(s => {
           const meta = nseStaticData[s.symbol];
@@ -210,4 +211,6 @@
       } else {
         const jsonKeys = Object.keys(nseStaticData);
         if (jsonKeys.length > 0) {
-          stocks = jsonKeys.slice(0, 50).map(sym => createStockObj(sym));
+          stocks = jsonKeys.slice(0, 60).map(sym => createStockObj(sym));
+        } else {
+          stocks = DEFAULT_SYMBOLS.map(entry => {
