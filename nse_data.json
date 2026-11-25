@@ -1,11 +1,37 @@
-{
-  "timestamp": 1764050000,
-  "updated": "25 Nov 2026",
-  "stocks": [
-    {
-      "symbol": "JSWINFRA",
-      "ltp": 360.5,
-      "chgPct": 1.2
+let nseStaticData = {};
+
+async function loadNseJson() {
+  try {
+    const res = await fetch("./nse_data.json?t=" + Date.now()); // Cache-busting
+    if (res.ok) {
+      nseStaticData = await res.json();
     }
-  ]
+  } catch (e) {
+    console.warn("Could not load nse_data.json:", e);
+  }
+}
+
+// Update createStockObj to pull from nseStaticData:
+function createStockObj(symbol, company = "") {
+  const cleanSym = symbol.trim().toUpperCase();
+  const meta = nseStaticData[cleanSym] || {};
+  return {
+    symbol: cleanSym,
+    company: company || meta.company || cleanSym,
+    ltp: null,
+    prevClose: meta.prevClose || null,
+    chg: 0,
+    chgPct: 0,
+    low: null,
+    high: null,
+    volume: 0,
+    delivPct: meta.prevDelivPct ?? 0,
+    updated: "--:--:--"
+  };
+}
+
+// Update initWatchlist to load JSON first:
+async function initWatchlist() {
+  await loadNseJson();
+  // ... rest of your existing initWatchlist code
 }
