@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Stock Ripple — All NSE Stocks (≥₹100)</title>
+<title>Stock Ripple — Live NSE Stocks (≥₹100)</title>
 <style>
   :root { --bg-main:#090b10; --bg-card:#10141d; --bg-hover:#161b26; --border:#1e2533; --text-main:#e2e8f0; --text-muted:#94a3b8; --green:#34d399; --green-bg:rgba(16,185,129,0.14); --red:#fb7185; --red-bg:rgba(244,63,94,0.14); --amber:#fbbf24; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -13,9 +13,11 @@
   .header-inner { max-width:1360px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
   .brand { display:flex; align-items:center; gap:8px; font-weight:800; font-size:16px; color:#fff; }
   .dot { width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); }
+  .dot.stale { background:var(--red); box-shadow:0 0 8px var(--red); }
   .brand span { color:var(--green); }
   .controls-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .status { font-size:12px; color:var(--text-muted); margin-right:4px; }
+  .status.stale { color:var(--red); font-weight:600; }
   button { background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
   button:hover { background:var(--bg-hover); }
   .btn-primary { background:var(--green-bg); color:var(--green); border-color:rgba(52,211,153,0.35); }
@@ -43,10 +45,11 @@
 <body>
 <header>
   <div class="header-inner">
-    <div class="brand"><div class="dot"></div>STOCK <span>RIPPLE</span></div>
+    <div class="brand"><div id="liveDot" class="dot"></div>STOCK <span>RIPPLE</span></div>
     <div class="controls-top">
       <span id="statusText" class="status mono">Loading NSE data...</span>
-      <button class="btn-primary" onclick="loadData()">Reload Data</button>
+      <button id="autoBtn" onclick="toggleAuto()">Auto: ON (60s)</button>
+      <button class="btn-primary" onclick="loadData()">Reload Now</button>
     </div>
   </div>
 </header>
@@ -100,18 +103,51 @@
 
 <script>
 let allStocks = [];
+let autoRefresh = true;
+let refreshTimer = null;
+
+function toggleAuto() {
+  autoRefresh = !autoRefresh;
+  document.getElementById("autoBtn").textContent = `Auto: ${autoRefresh ? "ON (60s)" : "OFF"}`;
+  if (autoRefresh) startTimer();
+  else clearInterval(refreshTimer);
+}
+
+function startTimer() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    if (autoRefresh) loadData();
+  }, 60000);
+}
 
 async function loadData() {
   const statusEl = document.getElementById("statusText");
-  statusEl.textContent = "Fetching nse_data.json...";
+  const dotEl = document.getElementById("liveDot");
   try {
-    const res = await fetch(`./nse_data.json?t=${Date.now()}`);
-    if (!res.ok) throw new Error("nse_data.json not found — run GitHub Action first");
+    const res = await fetch(`./nse_data.json?nocache=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("nse_data.json missing — run GitHub Action");
     const payload = await res.json();
     allStocks = payload.stocks || [];
-    statusEl.textContent = `Updated: ${payload.updated} (${allStocks.length} NSE stocks ≥₹100)`;
+
+    let staleNote = "";
+    let isStale = false;
+    if (payload.timestamp) {
+      const ageMins = Math.floor((Date.now() - payload.timestamp * 1000) / 60000);
+      if (ageMins > 15) {
+        isStale = true;
+        staleNote = ` • STALE (${ageMins}m ago — check GitHub Actions)`;
+      } else {
+        staleNote = ` • ${ageMins}m ago`;
+      }
+    }
+
+    dotEl.classList.toggle("stale", isStale);
+    statusEl.classList.toggle("stale", isStale);
+    statusEl.textContent = `Updated: ${payload.updated} (${allStocks.length} stocks)${staleNote}`;
     renderTable();
   } catch (err) {
+    dotEl.classList.add("stale");
+    statusEl.classList.add("stale");
     statusEl.textContent = err.message;
   }
 }
@@ -128,7 +164,7 @@ function renderTable() {
     if (s.ltp < minPrice || s.ltp > maxPrice) return false;
     if (move === "gainers" && s.chg <= 0) return false;
     if (move === "losers" && s.chg >= 0) return false;
-    if (query && !s.symbol.toLowerCase().includes(query) && !s.name.toLowerCase().includes(query)) return false;
+    if (query && !s.symbol.toLowerCase().includes(query) && !(s.name || "").toLowerCase().includes(query)) return false;
     return true;
   });
 
@@ -149,32 +185,8 @@ function renderTable() {
     if (sortBy === "chgPctAsc") return a.chgPct - b.chgPct;
     if (sortBy === "ltpDesc") return b.ltp - a.ltp;
     if (sortBy === "ltpAsc") return a.ltp - b.ltp;
-    if (sortBy === "volDesc") return b.vol - a.vol;
+    if (sortBy === "volDesc") return (b.volume || 0) - (a.volume || 0);
     return 0;
   });
 
-  tbody.innerHTML = filtered.map((s, idx) => {
-    const cls = s.chg > 0 ? "pos" : s.chg < 0 ? "neg" : "neu";
-    const badgeCls = s.chg > 0 ? "badge-pos" : s.chg < 0 ? "badge-neg" : "badge-neu";
-    const sign = s.chg > 0 ? "+" : "";
-    return `
-      <tr>
-        <td class="mono" style="color:var(--text-muted)">${idx + 1}</td>
-        <td class="mono" style="font-weight:700;color:#fff">${s.symbol}</td>
-        <td class="company-cell" title="${s.name}">${s.name}</td>
-        <td class="right mono" style="font-weight:700">₹${s.ltp.toFixed(2)}</td>
-        <td class="right mono ${cls}">${sign}${s.chg.toFixed(2)}</td>
-        <td class="right mono"><span class="badge ${badgeCls}">${sign}${s.chgPct.toFixed(2)}%</span></td>
-        <td class="right mono" style="color:var(--text-muted)">₹${s.prevClose.toFixed(2)}</td>
-        <td class="right mono">₹${s.low.toFixed(2)}</td>
-        <td class="right mono">₹${s.high.toFixed(2)}</td>
-        <td class="right mono">${s.vol.toLocaleString("en-IN")}</td>
-      </tr>
-    `;
-  }).join("");
-}
- loadData();
-setInterval(loadData, 60000); // Auto-refreshes every 15 minutes during market hours
-</script>
-</body>
-</html>
+  if (filtered.length === 0) {
