@@ -40,7 +40,7 @@
         </h1>
       </div>
       <div class="flex items-center gap-2.5">
-        <span id="statusText" class="text-xs font-mono text-slate-400">Starting...</span>
+        <span id="statusText" class="text-xs font-mono text-slate-400">Ready</span>
         <button onclick="resetWatchlist()" class="px-2.5 py-1.5 rounded-lg bg-bgMain hover:bg-slate-800 text-slate-300 border border-borderSubtle text-xs font-medium">
           Reset List
         </button>
@@ -142,47 +142,8 @@
       }
     }
 
-    async function loadNseJson() {
-      try {
-        const res = await fetch("nse_data.json?t=" + Date.now());
-        if (!res.ok) {
-          showDiag("nse_data.json not found (HTTP " + res.status + "). Showing default watchlist.");
-          return;
-        }
-        const raw = await res.json();
-
-        if (Array.isArray(raw)) {
-          raw.forEach(item => {
-            const sym = (item.symbol || item.SYMBOL || "").trim().toUpperCase();
-            if (sym) {
-              nseStaticData[sym] = {
-                company: item.company || item.COMPANY || item.name || sym,
-                prevDelivPct: parseFloat(item.prevDelivPct ?? item.DELIV_PER ?? item.deliv ?? 0) || 0,
-                prevClose: parseFloat(item.prevClose ?? item.CLOSE_PRICE ?? item.close ?? 0) || null
-              };
-            }
-          });
-        } else if (raw && typeof raw === "object") {
-          for (const [key, val] of Object.entries(raw)) {
-            const sym = key.trim().toUpperCase();
-            if (typeof val === "number") {
-              nseStaticData[sym] = { company: sym, prevDelivPct: val, prevClose: null };
-            } else if (val && typeof val === "object") {
-              nseStaticData[sym] = {
-                company: val.company || val.COMPANY || val.name || sym,
-                prevDelivPct: parseFloat(val.prevDelivPct ?? val.DELIV_PER ?? val.deliv ?? 0) || 0,
-                prevClose: parseFloat(val.prevClose ?? val.CLOSE_PRICE ?? val.close ?? 0) || null
-              };
-            }
-          }
-        }
-      } catch (err) {
-        showDiag("Could not parse nse_data.json: " + err.message);
-      }
-    }
-
     function createStockObj(symbol, company = "") {
-      const cleanSym = symbol.trim().toUpperCase();
+      const cleanSym = String(symbol || "").trim().toUpperCase();
       const meta = nseStaticData[cleanSym] || {};
       return {
         symbol: cleanSym,
@@ -194,23 +155,62 @@
         low: null,
         high: null,
         volume: 0,
-        delivPct: meta.prevDelivPct ?? 0,
+        delivPct: meta.prevDelivPct || 0,
         updated: "--:--:--"
       };
     }
 
-    async function initWatchlist() {
-      await loadNseJson();
-      const saved = localStorage.getItem("stock_ripple_v3");
-      if (saved) {
-        stocks = JSON.parse(saved).map(s => {
-          const meta = nseStaticData[s.symbol];
-          if (meta && meta.prevDelivPct) s.delivPct = meta.prevDelivPct;
-          return s;
-        });
-      } else {
+    function loadInitialList() {
+      try {
+        const saved = localStorage.getItem("stock_ripple_v4");
+        if (saved) {
+          stocks = JSON.parse(saved);
+          return;
+        }
+      } catch (e) {}
+
+      stocks = DEFAULT_SYMBOLS.map(entry => {
+        const parts = entry.split("|");
+        return createStockObj(parts.shift(), parts.shift());
+      });
+    }
+
+    async function loadNseJson() {
+      try {
+        const res = await fetch("nse_data.json?t=" + Date.now());
+        if (!res.ok) {
+          showDiag("nse_data.json returned HTTP " + res.status + " (check filename in repo). Using default watchlist.");
+          return;
+        }
+        const raw = await res.json();
+
+        if (Array.isArray(raw)) {
+          raw.forEach(item => {
+            if (!item || typeof item !== "object") return;
+            const sym = String(item.symbol || item.SYMBOL || item.Symbol || "").trim().toUpperCase();
+            if (sym) {
+              nseStaticData[sym] = {
+                company: item.company || item.COMPANY || item.name || sym,
+                prevDelivPct: parseFloat(item.prevDelivPct ?? item.DELIV_PER ?? item.deliv ?? 0) || 0,
+                prevClose: parseFloat(item.prevClose ?? item.CLOSE_PRICE ?? item.close ?? 0) || null
+              };
+            }
+          });
+        } else if (raw && typeof raw === "object") {
+          for (const [key, val] of Object.entries(raw)) {
+            const sym = String(key).trim().toUpperCase();
+            if (typeof val === "number") {
+              nseStaticData[sym] = { company: sym, prevDelivPct: val, prevClose: null };
+            } else if (val && typeof val === "object") {
+              nseStaticData[sym] = {
+                company: val.company || val.COMPANY || val.name || sym,
+                prevDelivPct: parseFloat(val.prevDelivPct ?? val.DELIV_PER ?? val.deliv ?? 0) || 0,
+                prevClose: parseFloat(val.prevClose ?? val.CLOSE_PRICE ?? val.close ?? 0) || null
+              };
+            }
+          }
+        }
+
+        // Merge JSON metadata into existing stocks or load from JSON if no custom list saved
         const jsonKeys = Object.keys(nseStaticData);
         if (jsonKeys.length > 0) {
-          stocks = jsonKeys.slice(0, 60).map(sym => createStockObj(sym));
-        } else {
-          stocks = DEFAULT_SYMBOLS.map(entry => {
