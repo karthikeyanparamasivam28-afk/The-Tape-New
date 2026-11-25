@@ -40,6 +40,7 @@
   .badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:12px; font-weight:600; }
   .badge-pos { background:var(--green-bg); color:var(--green); } .badge-neg { background:var(--red-bg); color:var(--red); } .badge-neu { background:#1e2533; color:var(--text-muted); }
   .company-cell { color:var(--text-muted); max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+  .empty-state { text-align:center; padding:32px; color:var(--text-muted); }
 </style>
 </head>
 <body>
@@ -96,7 +97,9 @@
           <th class="right">Volume</th>
         </tr>
       </thead>
-      <tbody id="stockTableBody"></tbody>
+      <tbody id="stockTableBody">
+        <tr><td colspan="10" class="empty-state mono">Fetching market feed...</td></tr>
+      </tbody>
     </table>
   </div>
 </main>
@@ -123,9 +126,28 @@ function startTimer() {
 async function loadData() {
   const statusEl = document.getElementById("statusText");
   const dotEl = document.getElementById("liveDot");
+  const tbody = document.getElementById("stockTableBody");
+
+  if (window.location.protocol === "file:") {
+    dotEl.classList.add("stale");
+    statusEl.classList.add("stale");
+    statusEl.textContent = "Error: Opened via file:// (Run via HTTP server or GitHub Pages)";
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">Browsers block loading <b>nse_data.json</b> directly from local files. Serve via HTTP (e.g. GitHub Pages or <code>python -m http.server</code>).</td></tr>`;
+    return;
+  }
+
+  statusEl.textContent = "Refreshing...";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const res = await fetch(`./nse_data.json?nocache=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error("nse_data.json missing — run GitHub Action");
+    const res = await fetch(`./nse_data.json?nocache=${Date.now()}`, {
+      cache: "no-store",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status} — nse_data.json missing`);
     const payload = await res.json();
     allStocks = payload.stocks || [];
 
@@ -143,50 +165,23 @@ async function loadData() {
 
     dotEl.classList.toggle("stale", isStale);
     statusEl.classList.toggle("stale", isStale);
-    statusEl.textContent = `Updated: ${payload.updated} (${allStocks.length} stocks)${staleNote}`;
+    statusEl.textContent = `Updated: ${payload.updated || "Just now"} (${allStocks.length} stocks)${staleNote}`;
     renderTable();
   } catch (err) {
+    clearTimeout(timeoutId);
     dotEl.classList.add("stale");
     statusEl.classList.add("stale");
-    statusEl.textContent = err.message;
+    const msg = err.name === "AbortError" ? "Request timed out (10s)" : err.message;
+    statusEl.textContent = `Failed: ${msg}`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">Could not load <b>nse_data.json</b> (${msg}). Make sure your GitHub Action has generated the JSON file in the same folder.</td></tr>`;
   }
 }
 
 function renderTable() {
   const tbody = document.getElementById("stockTableBody");
   const query = document.getElementById("searchInput").value.trim().toLowerCase();
-  const minPrice = parseFloat(document.getElementById("minPriceInput").value) || 100;
+  const minPrice = parseFloat(document.getElementById("minPriceInput").value) || 0;
   const maxPrice = parseFloat(document.getElementById("maxPriceInput").value) || Infinity;
-  const move = document.getElementById("moveFilter").value;
+  const moveFilter = document.getElementById("moveFilter").value;
   const sortBy = document.getElementById("sortSelect").value;
 
-  let filtered = allStocks.filter(s => {
-    if (s.ltp < minPrice || s.ltp > maxPrice) return false;
-    if (move === "gainers" && s.chg <= 0) return false;
-    if (move === "losers" && s.chg >= 0) return false;
-    if (query && !s.symbol.toLowerCase().includes(query) && !(s.name || "").toLowerCase().includes(query)) return false;
-    return true;
-  });
-
-  let adv = 0, dec = 0, unch = 0;
-  filtered.forEach(s => {
-    if (s.chg > 0) adv++;
-    else if (s.chg < 0) dec++;
-    else unch++;
-  });
-
-  document.getElementById("advancesCount").textContent = adv;
-  document.getElementById("declinesCount").textContent = dec;
-  document.getElementById("unchangedCount").textContent = unch;
-  document.getElementById("totalCount").textContent = filtered.length;
-
-  filtered.sort((a, b) => {
-    if (sortBy === "chgPctDesc") return b.chgPct - a.chgPct;
-    if (sortBy === "chgPctAsc") return a.chgPct - b.chgPct;
-    if (sortBy === "ltpDesc") return b.ltp - a.ltp;
-    if (sortBy === "ltpAsc") return a.ltp - b.ltp;
-    if (sortBy === "volDesc") return (b.volume || 0) - (a.volume || 0);
-    return 0;
-  });
-
-  if (filtered.length === 0) {
